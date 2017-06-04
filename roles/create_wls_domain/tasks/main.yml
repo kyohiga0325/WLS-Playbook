@@ -1,0 +1,9 @@
+
+# ■ ドメイン作成
+- include: create.yml
+# ■ ドメイン作成後の作業
+- include: postTask.yml
+# ■ サーバ起動のタスクを実行
+- include: start.yml
+# ■ サンプルアプリケーションのデプロイ
+# - include: sampleApp.yml

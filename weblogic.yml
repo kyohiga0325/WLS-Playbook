@@ -1,0 +1,9 @@
+- hosts: wls12cR2
+  # vars_files:
+    # - secret.yml
+  roles:
+    - { role: inst_java         , tags: [ 'install' ] }
+    - { role: inst_wls          , tags: [ 'install' ] }
+    - { role: create_wls_domain , tags: [ 'create' ] }
+    - { role: uninst_wls        , tags: [ 'uninstall' ] }
+    # - { role: common            , tags: [ 'install' ] }

@@ -1,0 +1,103 @@
+# #############################################
+# ■ ユーザの作成
+# ※ 既に java Role にて作成されている
+# #############################################
+
+- name: WLS グループを作成
+  group:
+    name  : "{{ wls_user.group }}"
+    state : present
+  # gid: {{wls_user.gid}}
+
+- name: WLS ユーザを作成
+  user:
+    name     : "{{ wls_user.name }}"
+    group    : "{{ wls_user.group }}"
+    home     : "{{ wls_user.home_dir }}"
+    password : "{{ wls_user.password | password_hash('sha512') }}"
+  # uid: {{wls_user.uid}}
+
+# #############################################
+# ■ 関連ディレクトリの作成
+# #############################################
+
+- name: WLS のディレクトリを作成
+  file:
+    path: "{{ wls_dir.oracle_home }}"
+    state: directory
+    mode: 0755
+    owner: "{{ wls_user.name }}"
+    group: "{{ wls_user.group }}"
+
+- name: oraInventory のディレクトリを作成
+  file:
+    path  : "{{ wls_dir.inventory }}"
+    state : directory
+    mode  : 0755
+    owner : "{{ wls_user.name }}"
+    group : "{{ wls_user.group }}"
+
+- name: 一時ディレクトリの作成
+  file:
+    path  : "{{common_dir.tmp}}"
+    state : directory
+    mode  : 0755
+    owner : "{{wls_user.name}}"
+    group : "{{wls_user.group}}"
+
+# #############################################
+# ■ 関連ファイルのコピー
+# #############################################
+
+- name: マスターからノードへ、WLS インストーラーをコピー
+  copy:
+    src   : "{{ wls_file.installer }}"
+    dest  : "{{ common_dir.tmp }}/{{ wls_file.installer }}"
+    owner : "{{ wls_user.name }}"
+    group : "{{ wls_user.group }}"
+    force : no
+
+- name: マスターからノードへ、サイレントインストールに利用する、response ファイルをコピー
+  template:
+    src   : "{{ wls_file.response_file }}.j2"
+    dest  : "{{ common_dir.tmp }}/{{ wls_file.response_file }}"
+    owner : "{{ wls_user.name }}"
+    group : "{{ wls_user.group }}"
+    force : no
+
+- name: WLS ユーザで、マスターからノードへ、サイレントインストールに利用する、oraInst.loc ファイルをコピー
+  template:
+    src   : "{{ wls_file.oraInst_file }}.j2"
+    dest  : "{{ common_dir.tmp }}/{{ wls_file.oraInst_file }}"
+    owner : "{{ wls_user.name }}"
+    group : "{{ wls_user.group }}"
+    force : no
+  become: true
+
+# #############################################
+# ■ インストーラーの実行
+# #############################################
+
+- name: WLS ユーザで、WLS のインストールを実行
+  shell: >
+    java
+    -jar {{ common_dir.tmp }}/{{ wls_file.installer }}
+    -silent
+    -responseFile {{ common_dir.tmp }}/{{ wls_file.response_file }}
+    -invPtrLoc {{ common_dir.tmp }}/{{ wls_file.oraInst_file }}
+  become      : true
+  become_user : "{{ wls_user.name }}"
+  environment : "{{ java_environment }}"
+  register    : result_of_installation
+
+- debug: var=result_of_installation
+
+
+# #############################################
+# ■ 関連ファイルの削除
+# #############################################
+
+- name: インストールに利用したファイル類を全て削除
+  file:
+   path  : "{{ common_dir.tmp }}"
+   state : absent

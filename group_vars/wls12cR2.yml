@@ -1,0 +1,35 @@
+######
+# OS #
+######
+
+# WLS Install group
+wls_install_group:
+  name: weblogic
+
+# WLS User
+wls_user:
+  name     : weblogic
+  group    : weblogic
+  password : weblogic
+  home_dir : /home/weblogic
+  shell    : /bin/bash
+
+common_dir:
+  ## インストーラーなどを一時的に格納するディレクトリ
+  tmp      : "{{wls_user.home_dir}}/tmp"
+  ## java のディレクトリ
+  java_dir : /opt/java
+
+## Java 関連変数
+java_version  : 1.8.0_121
+java_environment:
+  JAVA_HOME : "{{common_dir.java_dir}}/jdk{{java_version}}"
+  PATH      : "{{common_dir.java_dir}}/jdk{{java_version}}/bin:{{ansible_env.PATH}}"
+
+wls:
+  version                     : 12212
+
+wls_dir:
+  oracle_home : /opt/ofm/wls/{{wls.version}}
+  inventory   : /opt/oraInventory
+  wl_home     : /opt/ofm/wls/{{wls.version}}/wlserver

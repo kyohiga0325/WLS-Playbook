@@ -1,0 +1,9 @@
+[wls12cR2]
+demoAPServer ansible_ssh_host=127.0.0.1 ansible_ssh_port=2222 ansible_ssh_pass=vagrant
+
+[db12cR1]
+# demoDBServer ansible_ssh_host=127.0.0.1 ansible_ssh_port=2200 ansible_ssh_pass=vagrant
+
+[all:children]
+wls12cR2
+db12cR1

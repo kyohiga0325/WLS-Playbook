@@ -1,0 +1,20 @@
+#############################################
+# ■ 管理サーバの起動
+#############################################
+
+- name: 起動スクリプトの実行
+  shell: >
+    nohup
+    {{ domain_home }}/bin/startWebLogic.sh
+    >
+    {{ domain_home }}/servers/{{ scripts_parameter.admin_server.name }}/logs/{{ scripts_parameter.admin_server.name }}_`date +"%Y-
+    %m%d-%H%M%S"`.log
+    2>&1
+    &
+  become: true
+  become_user: "{{ wls_user.name }}"
+
+- name: リスニング状態確認
+  wait_for:
+    path: "{{ domain_home }}/servers/{{ scripts_parameter.admin_server.name }}/logs/{{ scripts_parameter.admin_server.name }}.log"
+    search_regex: 'BEA-000365.*RUNNING'

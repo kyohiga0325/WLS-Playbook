@@ -1,0 +1,72 @@
+#############################################
+# ■ 関連ディレクトリの作成
+#############################################
+
+- name: boot.properties のディレクトリの作成(管理サーバ)
+  file: 
+    path  : "{{ domain_home }}/servers/{{ scripts_parameter.admin_server.name }}/security"
+    state : directory
+    mode  : 0755
+    owner : "{{ wls_user.name }}"
+    group : "{{ wls_user.group }}"
+
+- name: boot.properties のディレクトリの作成(管理対象サーバ)
+  file: 
+    path  : "{{ domain_home }}/servers/{{ item.name }}/security"
+    state : directory
+    mode  : 0755
+    owner : "{{ wls_user.name }}"
+    group : "{{ wls_user.group }}"
+  with_list: "{{ scripts_parameter.managed_servers }}"
+
+- name: logs のディレクトリの作成(管理サーバ)
+  file:
+    path  : "{{ domain_home }}/servers/{{ scripts_parameter.admin_server.name }}/logs"
+    state : directory
+    mode  : 0755
+    owner : "{{ wls_user.name }}"
+    group : "{{ wls_user.group }}"
+
+- name: logs のディレクトリの作成(管理対象サーバ)
+  file:
+    path  : "{{ domain_home }}/servers/{{ item.name }}/logs"
+    state : directory
+    mode  : 0755
+    owner : "{{ wls_user.name }}"
+    group : "{{ wls_user.group }}"
+  with_list: "{{ scripts_parameter.managed_servers }}"
+
+#############################################
+# ■ 起動 ID ファイルの追加
+#############################################
+
+- name: boot.properties の追加 (管理サーバ)
+  template:
+    src   : "{{ create_domain_file.boot_properties }}.j2"
+    dest  : "{{ domain_home }}/servers/{{ scripts_parameter.admin_server.name }}/security/{{ create_domain_file.boot_properties }}"
+    owner : "{{ wls_user.name }}"
+    group : "{{ wls_user.group }}"
+
+- name: boot.properties の追加 (管理対象サーバ)
+  template:
+    src   : "{{ create_domain_file.boot_properties }}.j2"
+    dest  : "{{ domain_home }}/servers/{{ item.name }}/security/{{ create_domain_file.boot_properties }}"
+    owner : "{{ wls_user.name }}"
+    group : "{{ wls_user.group }}"
+  with_list: "{{ scripts_parameter.managed_servers }}"
+
+# - name: Java オプションを setDomainEnv に追記
+#   blockinfile:
+#     dest: "{{ domain_home }}/bin/setDomainEnv.sh"
+#     # insertafter: "JAVA_OPTIONS=\"${JAVA_OPTIONS}\""
+#     block: |
+#       JAVA_OPTIONS= "${JAVA_OPTIONS} {{ item }}"
+#     marker: "# {mark} ANSIBLE MANAGED BLOCK {{  item  }}"
+#   with_items: "{{ java_options }}"
+
+- name: Java オプションを setDomainEnv に追記
+  lineinfile:
+    dest        : "{{ domain_home }}/bin/setDomainEnv.sh"
+    insertafter : '^JAVA_OPTIONS.*'
+    line        : 'JAVA_OPTIONS="${JAVA_OPTIONS} {{ item }}"'
+  with_items: "{{ java_options }}"

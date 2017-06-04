@@ -1,0 +1,82 @@
+
+domain_name: ansible-test-domain
+domain_home: "{{wls_user.home_dir}}/wls-domain/12212/{{domain_name}}"
+
+create_domain_file:
+  script_mame: create_domain.py
+  boot_properties: boot.properties
+
+script_file:
+  create_domain: create_domain.py
+  create_ds: createDS.py
+  deploy_app: app_deployment_script.sh
+
+create_domain_dir:
+  tmp_scripts_dir: "{{common_dir.tmp}}/scripts"
+  tmp_scripts_log_dir: "{{common_dir.tmp}}/scripts/log"
+  tmp_app_dir: "{{common_dir.tmp}}/app"
+
+## WLST スクリプトに利用する
+scripts_parameter:
+  domain:
+    wls_version : 12.2.1.2
+    name        : "{{domain_name}}"
+    dir         : "{{domain_home}}"
+    start_mode  : prod # or dev
+    admin_user  :
+      name     : weblogic
+      password : welcome1
+  admin_server:
+    name            : AdminServer
+    listen_address  : "{{ansible_default_ipv4.address}}"
+    listen_port     : 17000
+    ssl_enabled     : false
+    ssl_listen_port : 17100
+  managed_servers:
+    - name            : Server-1
+      listen_address  : "{{ansible_default_ipv4.address}}"
+      listen_port     : 17001
+      ssl_enabled     : false
+      ssl_listen_port : 17101
+    - name            : Server-2
+      listen_address  : "{{ansible_default_ipv4.address}}"
+      listen_port     : 17002
+      ssl_enabled     : false
+      ssl_listen_port : 17102
+  datasource:
+    datasource1:
+      name                       : "{{oracleDB.database1.hostname}}_{{oracleDB.database1.sName}}"
+      jndi_name                  : "{{oracleDB.database1.hostname}}_{{oracleDB.database1.sName}}"
+      user_name                  : scott
+      user_password              : tiger
+      type                       : GENERIC
+      globalTransactionsProtocol : OnePhaseCommit
+      url                        : "jdbc:oracle:thin:@(DESCRIPTION=(ENABLE=broken)(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST={{oracleDB.database1.hostname}})(PORT={{oracleDB.database1.port}})))(CONNECT_DATA=(SERVICE_NAME={{oracleDB.database1.sName}})(INSTANCE_NAME={{oracleDB.database1.iName}})))"
+      driverName                 : oracle.jdbc.OracleDriver
+      oracleNetCONNECT_TIMEOUT   : 5000
+      oracleNetReadTimeout       : 5000
+
+sampleApp:
+  name: haweb2
+  file_name: haweb2.war
+
+oracleDB:
+  database1:
+    hostname: "{{database.database1.hostname}}"
+    port: "{{database.database1.port}}"
+    sName: "{{database.database1.sName}}"
+    iName: "{{database.database1.iName}}"
+
+java_options:
+  ## IPv4 を優先にするため
+  - -Djava.net.preferIPv4Stack=true
+  ## GC ログを設定するため
+  - -verbose:gc
+  - -XX:+PrintGCDetails
+  - -XX:+PrintGCDateStamps
+  - -Xloggc:${DOMAIN_HOME}/servers/${SERVER_NAME}/logs/${SERVER_NAME}_gc_debug_`date +"%Y-%m-%d-%H-%M-%S"`.log
+  - -XX:+UseGCLogFileRotation
+  - -XX:NumberOfGCLogFiles=5
+  - -XX:GCLogFileSize=10M
+  ## Urandom の設定
+  - -Djava.security.egd=file:/dev/urandom

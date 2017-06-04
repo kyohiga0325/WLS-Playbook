@@ -1,0 +1,107 @@
+## Auther: Kyohei.Higashi(z2130048)
+## Usage:
+##   ${ORACLE_HOME}/oracle_common/common/bin/wlst.sh <WLST_script>
+## Exapmle:
+##   ${ORACLE_HOME}/oracle_common/common/bin/wlst.sh create_domain.py
+
+import os
+
+################
+## Var
+################
+
+wlsVersion               = '{{scripts_parameter.domain.wls_version}}'
+domainName               = '{{scripts_parameter.domain.name}}'
+serverStartMode          = '{{scripts_parameter.domain.start_mode}}' # or dev
+javaHome                 = '{{java_environment.JAVA_HOME}}'
+
+adminServerName          = '{{scripts_parameter.admin_server.name}}'
+adminServerListenAddress = '{{scripts_parameter.admin_server.listen_address}}'
+## This var type MUST be a number.
+adminServerListenPort    = {{scripts_parameter.admin_server.listen_port}}
+
+adminServerSSLEnabled    = '{{scripts_parameter.admin_server.ssl_enabled}}'
+## This var type MUST be a number.
+adminServerSSLListenPort = {{scripts_parameter.admin_server.ssl_listen_port}}
+
+adminUserName            = '{{scripts_parameter.domain.admin_user.name}}'
+adminPassword            = '{{scripts_parameter.domain.admin_user.password}}'
+
+domainDir                = '{{scripts_parameter.domain.dir}}/'
+managedServers = []
+
+{% for managed_server in scripts_parameter.managed_servers %}
+managedServers.append({
+  "name"            : '{{managed_server.name}}',
+  "listen_address"  : '{{managed_server.listen_address}}',
+  "listen_port"     : {{managed_server.listen_port}},
+  "ssl_enabled"     : '{{managed_server.ssl_enabled}}',
+  "ssl_listen_port" : {{managed_server.ssl_listen_port}},
+})
+{% endfor %}
+
+
+def init():
+    selectTemplate('Basic WebLogic Server Domain',wlsVersion)
+    loadTemplates()
+
+    # set Domain Name
+    set('Name',domainName)
+
+    # Set the domain password for the WebLogic Server administration user
+    cd('/')
+    cd('Security/' + domainName + '/User/weblogic')
+    cmo.setName(adminUserName)
+    cmo.setPassword(adminPassword)
+    # If the domain already exists, overwrite the domain
+    setOption('OverwriteDomain', 'true')
+    # Set domain configuration
+    setOption('ServerStartMode', serverStartMode)
+    setOption('JavaHome', javaHome)
+    cd('/')
+
+
+def declare_administration_server():
+    print 'declare AdminServer'
+    # Set the listen address and listen port for the Administration Server
+    cmo.setAdminServerName(adminServerName)
+    cd('Server/AdminServer')
+    cmo.setName(adminServerName)
+    set('ListenAddress',adminServerListenAddress)
+    set('ListenPort', adminServerListenPort)
+    # Enable SSL on the Administration Server and set the SSL listen address and
+    # port
+    create(adminServerName,'SSL')
+    cd('SSL/' + adminServerName)
+    set('Enabled', adminServerSSLEnabled)
+    set('ListenPort', adminServerSSLListenPort)
+    cd('/')
+
+# Select the template to use for creating the domain
+
+def declare_managed_servers():
+    for managedServer in managedServers :
+      print 'declare ' + managedServer["name"]
+      cd('/')
+      create(managedServer["name"],'Server')
+
+      cd('Server/' + managedServer["name"])
+      set('ListenAddress', managedServer["listen_address"])
+      set('ListenPort'   , managedServer["listen_port"])
+
+      create(managedServer["name"],'SSL')
+      cd('SSL/' + managedServer["name"])
+      set('Enabled'      , managedServer["ssl_enabled"])
+      set('ListenPort'   , managedServer["ssl_listen_port"])
+
+
+def main():
+    init()
+    declare_administration_server()
+    declare_managed_servers()
+    writeDomain(domainDir)
+    closeTemplate()
+
+main()
+
+exit()

@@ -1,0 +1,36 @@
+# #############################################
+# ■ 関連ファイルのコピー
+# #############################################
+
+- name: スクリプト用の一時ディレクトリの作成
+  file:
+    path  : "{{ create_domain_dir.tmp_scripts_dir }}"
+    state : directory
+    mode  : 0755
+    owner : "{{ wls_user.name }}"
+    group : "{{ wls_user.group }}"
+
+
+- name: マスターからノードへ、ドメイン作成用の WLST スクリプトをコピーする
+  template:
+    src   : "{{ script_file.create_domain }}.j2"
+    dest  : "{{ create_domain_dir.tmp_scripts_dir }}/{{ script_file.create_domain }}"
+    owner : "{{ wls_user.name }}"
+    group : "{{ wls_user.group }}"
+
+
+#############################################
+# ■ ドメイン作成
+#############################################
+
+- name: urandom の設定を wlst スクリプトに追記
+  lineinfile:
+    dest         : "{{ wls_dir.oracle_home }}/oracle_common/common/bin/wlst.sh"
+    insertbefore : '^JVM_ARGS.*'
+    line         : 'CONFIG_JVM_ARGS="${CONFIG_JVM_ARGS} -Djava.security.egd=file:/dev/urandom"'
+
+- name: WLS ユーザで、WLST スクリプトを実行し、ドメインを作成
+  shell       : "{{ wls_dir.oracle_home }}/oracle_common/common/bin/wlst.sh {{ create_domain_dir.tmp_scripts_dir }}/{{ script_file.create_domain }}"
+  become      : true
+  become_user : "{{ wls_user.name }}"
+

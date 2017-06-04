@@ -1,0 +1,86 @@
+# #############################################
+# ■ ユーザの作成
+# #############################################
+
+- name: WLS グループを作成
+  group:
+    name  : "{{ wls_user.group }}"
+    state : present
+
+- name: WLS ユーザを作成
+  user:
+    name     : "{{ wls_user.name }}"
+    group    : "{{ wls_user.group }}"
+    home     : "{{ wls_user.home_dir }}"
+    password : "{{ wls_user.password | password_hash('sha512') }}"
+  # uid={{wls_user.uid}}
+
+# #############################################
+# ■ 関連ディレクトリの作成
+# #############################################
+
+- name: JDK のルートディレクトリの作成
+  file:
+   path  : "{{ common_dir.java_dir }}"
+   state : directory
+   mode  : 0755
+   owner : "{{ wls_user.name }}"
+   group : "{{ wls_user.group }}"
+
+- name: 一時ディレクトリの作成
+  file: 
+    path  : "{{ common_dir.tmp }}"
+    state : directory
+    mode  : 0755
+    owner : "{{ wls_user.name }}"
+    group : "{{ wls_user.group }}"
+
+# #############################################
+# ■ 関連ファイルのコピー
+# #############################################
+
+- name: Java のアーカイブファイルをコピー
+  copy:
+   src   : "{{ java_file.archive }}"
+   dest  : "{{ common_dir.tmp }}/{{ java_file.archive }}"
+   owner : "{{ wls_user.name }}"
+   group : "{{ wls_user.group }}"
+   force : no
+
+# #############################################
+# ■ 指定されたディレクトリに展開
+# #############################################
+
+- name: Java のディレクトリが既に存在していないか確認
+  stat: 
+    path: "{{ java_environment.JAVA_HOME }}"
+  register: java_directory_stat
+
+- name: Java のアーカイブファイルを JDK ルートディレクトリに展開
+  unarchive:
+   src        : "{{ common_dir.tmp }}/{{ java_file.archive }}"
+   dest       : "{{ common_dir.java_dir }}/"
+   remote_src : yes
+   owner      : "{{ wls_user.name }}"
+   group      : "{{ wls_user.group }}"
+  when: java_directory_stat.stat.exists == false
+
+# #############################################
+# ■ バージョンの確認
+# #############################################
+
+- name: Java のバージョンの確認
+  command: java -version
+  environment: "{{ java_environment }}"
+  register: result_of_executing_java_version  ## -- Debug
+
+- debug: var=result_of_executing_java_version ## -- Debug
+
+# #############################################
+# ■ 関連ファイルの削除
+# #############################################
+
+- name: インストールに利用したファイル類を全て削除
+  file:
+   path: "{{ common_dir.tmp }}"
+   state: absent

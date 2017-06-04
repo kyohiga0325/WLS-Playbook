@@ -1,0 +1,84 @@
+# #############################################
+# ■ ネットワーク関連の設定
+# #############################################
+
+- name: ホストネームの設定
+  hostname:
+    name: "{{hostname}}"
+
+- name: DNS設定
+  lineinfile:
+    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ansible_eth1.device}}"
+    line: 'DNS1={{network.dns1}}'
+
+- name: デフォルトゲートウェイ設定
+  lineinfile:
+    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ansible_eth1.device}}"
+    line: 'GATEWAY={{network.default_gateway}}'
+
+- name: ネットワークデバイスの再起動
+  service:
+    name: network
+    state: restarted
+    args: "{{ansible_eth1.device}}"
+
+# #############################################
+# ■ SELinux の設定
+# #############################################
+
+- name: Install libselinux-python
+  yum: name=libselinux-python state=present
+  # environment: "{{proxy_env}}"
+
+- name: SELinuxのDisable設定
+  selinux: state=disabled
+
+
+# #############################################
+# ■ yum の設定
+# #############################################
+
+- name: 一時ディレクトリ($HOME/tmp)の作成
+  file: >
+   path="{{ansible_env.HOME}}/tmp"
+   state=directory
+   mode=0755
+
+- name: yum リポジトリのダウンロード
+  get_url:
+    url: http://ftp.jaist.ac.jp/pub/Linux/Fedora/epel/6/x86_64/epel-release-6-8.noarch.rpm
+    dest: "{{ansible_env.HOME}}/tmp/epel-release-6-8.noarch.rpm"
+  # environment: "{{proxy_env}}"
+
+- name: yum リポジトリの追加(EPEL)
+  yum:
+    name: "{{ansible_env.HOME}}/tmp/epel-release-6-8.noarch.rpm"
+    state: present
+  # environment: "{{proxy_env}}"
+
+- name: yum リポジトリのファイルコピー(CentOS - base)
+  template: >
+   src=CentOS-Base.repo.j2
+   dest=/etc/yum.repos.d/CentOS-Base.repo
+   force=yes
+
+- name: yum の releasever 変数を設定
+  file:
+    path: /etc/yum/vars/releasever
+    state: touch
+
+- name: releasever 変数にバージョンを記載
+  lineinfile:
+    dest: /etc/yum/vars/releasever
+    line: "{{ansible_distribution_version}}"
+
+- name: ipv4 優先する記述を yum の設定ファイルに追加
+  lineinfile:
+    dest: /etc/yum.conf
+    line: 'ip_resolve=4'
+
+- name: 必要コマンドのインストール
+  yum: name=unzip state=installed update_cache="yes"
+  environment: "{{proxy_env}}"
+
+

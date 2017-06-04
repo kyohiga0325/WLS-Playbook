@@ -1,0 +1,55 @@
+# #############################################
+# ■ 関連ディレクトリの作成
+# #############################################
+
+- name: 一時ディレクトリの作成
+  file: >
+    path={{common_dir.tmp}}
+    state=directory
+    mode=0755
+    owner={{wls_user.name}}
+    group={{wls_user.group}}
+
+
+# #############################################
+# ■ 関連ファイルのコピー
+# #############################################
+
+- name: マスターからノードへ、response ファイルをコピー
+  template: >
+    src={{wls_file.response_file}}.j2
+    dest={{common_dir.tmp}}/{{wls_file.response_file}}
+    owner={{wls_user.name}}
+    group={{wls_user.group}}
+    force=no
+
+# #############################################
+# ■ アンインストーラーの実行
+# #############################################
+
+- name: WLS ユーザで、WLS のアンインストールスクリプトを実行
+  shell: >
+    {{wls_dir.oracle_home}}/oui/bin/deinstall.sh
+    -silent
+    -responseFile {{common_dir.tmp}}/{{wls_file.response_file}}
+    -logLevel FINE
+  become: true
+  become_user: weblogic
+  environment: "{{java_environment}}"
+  register: result_of_uninstallation
+
+- debug: var=result_of_uninstallation
+
+# #############################################
+# ■ 関連ファイル/ディレクトリの削除
+# #############################################
+
+- name: レスポンスファイルを削除
+  file: >
+   path={{common_dir.tmp}}/{{wls_file.response_file}}
+   state=absent
+
+- name: インストールディレクトリを削除
+  file: >
+   path={{wls_dir.oracle_home}}
+   state=absent

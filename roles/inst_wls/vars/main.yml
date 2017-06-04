@@ -1,0 +1,17 @@
+# ※ テンプレートファイルは、変数に ".j2" の拡張子をつけて対応
+wls_file:
+  ## インストーラー
+  installer     : fmw_12.2.1.2.0_wls.jar
+  ## レスポンスファイル
+  response_file : wls12212-full-inst.rsp
+  ## oraInst.loc ファイル
+  oraInst_file  : oraInst.loc
+
+inst_wls_response_file_param:
+  version: 12.2.1.2.0
+
+
+
+
+
+

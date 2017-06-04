@@ -1,0 +1,8 @@
+ansible_user : root
+
+database:
+  database1:
+    hostname : 192.168.30.74
+    port     : 1521
+    sName    : orcl12c
+    iName    : orcl12c
